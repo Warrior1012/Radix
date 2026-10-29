@@ -11,6 +11,7 @@ import JdPanel from './components/JdPanel.jsx';
 import ResumePanel from './components/ResumePanel.jsx';
 import ProfilePanel from './components/ProfilePanel.jsx';
 import ResultsPanel from './components/ResultsPanel.jsx';
+import DecisionLab from './components/DecisionLab.jsx';
 
 const STAGES = [
   { id: 'jd-workspace', title: 'JD Analytics', detail: 'Decode the role', icon: BriefcaseBusiness },
@@ -749,6 +750,7 @@ export default function App() {
     { id: 'profile-workspace', label: 'Profile Builder', icon: UserRound, number: '03', group: 'ASSESSMENT FLOW' },
     { id: 'talent-workspace', label: 'Talent Check', icon: BarChart3, number: '04', group: 'ASSESSMENT FLOW' },
     { id: 'match-workspace', label: 'Skill Matching', icon: GitCompareArrows, number: '05', group: 'ASSESSMENT FLOW' },
+    { id: 'decision-lab-workspace', label: 'Decision Lab', icon: FileCheck2, number: '06', group: 'ASSESSMENT FLOW' },
     { id: 'evidence-workspace', label: 'Evidence & Eval', icon: ClipboardList, group: 'QUALITY & EVIDENCE' },
     { id: 'about-workspace', label: 'About & Privacy', icon: ShieldCheck, group: 'INFORMATION' }
   ];
@@ -913,6 +915,17 @@ export default function App() {
               <div className="screen-heading"><div className="kicker">MODULE 05 / JOB-SPECIFIC FIT</div><h1>Skill Matching</h1><p>Compare the candidate profile with the analysed JD. Review matched skills and prioritized gaps.</p></div>
               <div className="screen-panel"><ResultsPanel mode="match" companies={companies} companyId={companyId} setCompanyId={changeCompany} busy={busy} onTalent={runTalent} onMatch={runMatch} talent={talent} match={match} jd={jd} /></div>
               <div className="screen-actions"><button className="btn btn-quiet" onClick={() => navigate('overview')}>Back to Overview <ArrowRight size={16} /></button></div>
+            </section>
+          )}
+
+          {activeNav === 'decision-lab-workspace' && (
+            <section className="module-screen">
+              <div className="screen-heading">
+                <div className="kicker">DECISION SUPPORT / TRUST + SIMULATION</div>
+                <h1>Decision Lab</h1>
+                <p>Trace job requirements to current candidate evidence, then test a hypothetical skills scenario without changing the saved profile.</p>
+              </div>
+              <div className="screen-panel"><DecisionLab profile={profile} jd={jd} /></div>
             </section>
           )}
 
