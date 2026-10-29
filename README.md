@@ -12,7 +12,7 @@ Stack: Python / FastAPI backend, React + Vite frontend, server-side Gemini/Groq/
 | 4 Talent Check | deterministic readiness score + AI advisory rating out of 10 + learning recommendations | `backend/radix_jd/talent_check.py`, `backend/radix_jd/talent_coach.py` |
 | 5 Skill Matching | deterministic weighted score + optional evidence-grounded AI semantic assist | `backend/radix_jd/skill_match.py`, `backend/radix_jd/semantic_match.py` |
 
-Shared contract and formulas: [`docs/CONTRACT.md`](docs/CONTRACT.md). Status: [`PROJECT_STATE.md`](PROJECT_STATE.md). Claude suggestion triage: [`docs/CLAUDE_SUGGESTION_REVIEW.md`](docs/CLAUDE_SUGGESTION_REVIEW.md). Requirement-by-requirement check: [`docs/COMPLIANCE_MATRIX.md`](docs/COMPLIANCE_MATRIX.md). What was and was not actually run: [`docs/INTEGRATION_AUDIT.md`](docs/INTEGRATION_AUDIT.md). Demo script: [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
+Shared contract and formulas: [`docs/CONTRACT.md`](docs/CONTRACT.md). Setup: [`INTEGRATION_SETUP.md`](INTEGRATION_SETUP.md). Requirement-by-requirement check: [`docs/COMPLIANCE_MATRIX.md`](docs/COMPLIANCE_MATRIX.md). What was and was not actually run: [`docs/INTEGRATION_AUDIT.md`](docs/INTEGRATION_AUDIT.md). Demo script: [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md).
 
 ## Frontend navigation
 
@@ -93,7 +93,7 @@ In the Supabase SQL Editor run, in order: `supabase/migrations/20261027_create_j
 ```powershell
 cd backend
 pip install -r requirements-dev.txt
-pytest -q                      # backend: record the count in PROJECT_STATE.md
+pytest -q                      # backend unit/integration tests
 
 cd ..\frontend
 $env:RADIX_TEST_API='http://127.0.0.1:8000'   # backend running with DEMO_FALLBACK=true and no keys
