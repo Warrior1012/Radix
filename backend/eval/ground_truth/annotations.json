@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "annotation_policy": "Ground truth must be written and independently reviewed by team members directly from the official source files. Do not ask an LLM to generate or approve labels.",
+  "documents": []
+}

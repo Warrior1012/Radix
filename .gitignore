@@ -1,0 +1,14 @@
+.env
+backend/.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+dist/
+.DS_Store
+backend/data/profiles/
+backend/data/jds/
+
+backend/data/jd_extraction_cache.json
+backend/eval/reports/latest.json

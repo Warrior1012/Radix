@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "source": "Local three-company benchmark snapshot supplied with the RADIX Talent Check role package",
+  "note": "required_level is mapped by category_code. The order in this file is not used for positional joins.",
+  "companies": [
+    {
+      "company_id": 4,
+      "name": "Google LLC",
+      "short_name": "Google",
+      "skill_levels": {"COD": 8, "DSA": 9, "APTI": 9, "COMM": 7, "OOD": 8, "AI": 7, "SQL": 8, "SYSD": 4, "CLOUD": 9, "SWE": 9, "NETW": 9, "OS": 9}
+    },
+    {
+      "company_id": 78,
+      "name": "Microsoft Corporation",
+      "short_name": "Microsoft",
+      "skill_levels": {"COD": 6, "DSA": 9, "APTI": 8, "COMM": 7, "OOD": 8, "AI": 8, "SQL": 8, "SYSD": 8, "CLOUD": 7, "SWE": 9, "NETW": 8, "OS": 8}
+    },
+    {
+      "company_id": 24,
+      "name": "Oracle Financial Services Software Limited",
+      "short_name": "Oracle Financial Services",
+      "skill_levels": {"COD": 5, "DSA": 6, "APTI": 6, "COMM": 6, "OOD": 6, "AI": 6, "SQL": 6, "SYSD": 5, "CLOUD": 5, "SWE": 7, "NETW": 5, "OS": 5}
+    }
+  ]
+}

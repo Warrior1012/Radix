@@ -1,0 +1,22 @@
+Senior Backend Engineer
+Acme Corp (SYNTHETIC TEST FIXTURE - not an official hackathon JD)
+
+About the role
+We build payment systems used by thousands of merchants every day.
+
+Required Skills
+• Strong proficiency in Python for backend services
+• SQL and relational database design
+• REST API design and implementation
+• Git version control and code review
+• Solid knowledge of data structures and algorithms
+
+Preferred Skills
+• Hands-on experience with Docker containers
+• Kubernetes orchestration experience
+• AWS cloud services familiarity
+• Experience with system design for scale
+• Exposure to machine learning pipelines
+
+Benefits
+Health insurance and flexible working hours.

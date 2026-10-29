@@ -1,0 +1,26 @@
+SYNTHETIC TEST RESUME - not a real person
+Test Candidate One
+test.candidate@example.com | +91 00000 00000
+
+OBJECTIVE
+Seeking a Backend Engineer role.
+
+EDUCATION
+B.Tech in Computer Science, Example Institute of Technology, 2022-2026
+Class XII, Example Public School, 2022
+
+SKILLS
+Python, Java, SQL, PostgreSQL, Git, Docker, Data Structures and Algorithms
+
+PROJECTS
+Expense Tracker API - built a REST API in Python with PostgreSQL and Docker deployment.
+Chess Engine - implemented minimax search using algorithms and data structures in Java.
+
+INTERNSHIPS
+Backend Intern, Example Labs, Jun 2025 - Aug 2025: wrote SQL queries and Python scripts.
+
+HACKATHONS
+Smart India Hackathon 2024 - finalist, built a route optimiser.
+
+CERTIFICATIONS
+AWS Cloud Practitioner

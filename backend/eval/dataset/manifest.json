@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source": "RADIX Talent Match Hackathon Participant Brief, October 2026, section 7",
+  "note": "Paths are intentionally blank until the official source pack is supplied. Never replace these with synthetic test files for official metrics.",
+  "documents": [
+    {"document_id":"google_swe_jd","kind":"jd","label":"Google LLC - Software Engineer (SWE)","pdf_path":"","docx_path":""},
+    {"document_id":"google_data_scientist_jd","kind":"jd","label":"Google LLC - Data Scientist","pdf_path":"","docx_path":""},
+    {"document_id":"microsoft_swe_jd","kind":"jd","label":"Microsoft Corporation - Software Engineer","pdf_path":"","docx_path":""},
+    {"document_id":"microsoft_data_analyst_jd","kind":"jd","label":"Microsoft Corporation - Data Analyst","pdf_path":"","docx_path":""},
+    {"document_id":"oracle_associate_swe_jd","kind":"jd","label":"Oracle Financial Services Software - Associate Software Engineer","pdf_path":"","docx_path":""},
+    {"document_id":"oracle_application_support_jd","kind":"jd","label":"Oracle Financial Services Software - Application Support Analyst","pdf_path":"","docx_path":""},
+    {"document_id":"ananya_rao_resume","kind":"resume","label":"Ananya Rao - systems-leaning generalist","pdf_path":"","docx_path":""},
+    {"document_id":"karthik_subramaniam_resume","kind":"resume","label":"Karthik Subramaniam - data-leaning analyst","pdf_path":"","docx_path":""},
+    {"document_id":"priya_menon_resume","kind":"resume","label":"Priya Menon - entry-level, support-oriented","pdf_path":"","docx_path":""},
+    {"document_id":"rohan_verma_resume","kind":"resume","label":"Rohan Verma - strong all-rounder","pdf_path":"","docx_path":""}
+  ]
+}
