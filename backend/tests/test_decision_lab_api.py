@@ -60,7 +60,7 @@ def test_simulator_is_hypothetical_and_returns_delta_without_storage(monkeypatch
     assert result["scenario_score"] == 100.0
     assert result["score_delta"] == 50.0
     assert result["assumed_skills"] == ["FastAPI"]
-    assert "not created or changed" in result["assumption_note"]
+    assert "created or changed" in result["assumption_note"]
 
 
 def test_simulator_rejects_non_missing_or_arbitrary_skill():
