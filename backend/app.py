@@ -26,6 +26,7 @@ from radix_jd.profiles import (ProfileRepository, InvalidCandidateId, detect_use
 from radix_jd.talent_check import compute_talent_check
 from radix_jd.talent_coach import generate_talent_coaching
 from radix_jd.profile_review import generate_profile_review
+from radix_jd.decision_lab import build_proof_graph, simulate_skill_match
 
 load_dotenv(Path(__file__).parent / '.env')
 app = FastAPI(title='RADIX Talent Match — Unified API', version='1.1.0')
@@ -44,6 +45,12 @@ class MatchRequest(BaseModel):
     profile: Profile
     job: dict[str, Any] | None = None
     jd_id: str | None = None
+
+class DecisionLabRequest(BaseModel):
+    profile: Profile
+    job: dict[str, Any] | None = None
+    jd_id: str | None = None
+    assumed_skills: list[str] = Field(default_factory=list, max_length=25)
 
 class MatrixRequest(BaseModel):
     candidate_ids: list[str] = Field(default_factory=list, max_length=50)
@@ -425,3 +432,74 @@ async def skill_match(req: MatchRequest):
         except Exception as exc: result['persistence']={'saved':False,'mode':'supabase','warning':f'Result not saved ({type(exc).__name__}); apply the provided migration.'}
     else: result['persistence']={'saved':False,'mode':'memory-demo'}
     return result
+
+
+# Decision Lab endpoints are deliberately additive and stateless. They do not write
+# candidate profiles or result tables, so existing deployed workflows remain unchanged.
+def _resolve_decision_lab_job(req: DecisionLabRequest) -> tuple[dict[str, Any], str]:
+    job = dict(req.job or {})
+    resolution = "request"
+    if req.jd_id:
+        jd = resolve_jd(req.jd_id)
+        if jd:
+            job = {
+                **job,
+                "job_id": req.jd_id,
+                "required_skills": jd.get("required_skills", []),
+                "preferred_skills": jd.get("preferred_skills", []),
+                "skills": jd.get("skills"),
+                "source_file": jd.get("source_file"),
+                "company": jd.get("company"),
+                "role": jd.get("role"),
+            }
+            resolution = "jd_id"
+        elif job.get("required_skills") or job.get("preferred_skills"):
+            resolution = "jd_id_not_found_used_request_lists"
+        else:
+            raise HTTPException(404, "Analysed JD not found. Analyse the JD again, or send required_skills/preferred_skills.")
+    elif not req.job:
+        raise HTTPException(422, "Send either jd_id or job.")
+
+    if not job.get("required_skills") and not job.get("preferred_skills"):
+        raise HTTPException(422, "The job description has no required or preferred skills to compare.")
+    return job, resolution
+
+
+@app.post("/api/decision-lab/proofgraph")
+def decision_lab_proofgraph(req: DecisionLabRequest):
+    """Return a non-persisted requirement-to-evidence view for the submitted profile and JD."""
+    job, resolution = _resolve_decision_lab_job(req)
+    result = build_proof_graph(req.profile.skills_as_dicts(), job)
+    return {
+        "module": "decision-lab-proofgraph",
+        "job_id": job.get("job_id") or req.jd_id or "request-job",
+        "job_role": job.get("role") or job.get("job_title") or "",
+        "job_company": job.get("company") or "",
+        "jd_resolution": resolution,
+        "candidate_name": req.profile.name,
+        "profile_saved": False,
+        **result,
+    }
+
+
+@app.post("/api/decision-lab/simulate")
+def decision_lab_simulate(req: DecisionLabRequest):
+    """Calculate a hypothetical skill-demonstration scenario without mutating or persisting the profile."""
+    job, resolution = _resolve_decision_lab_job(req)
+    try:
+        result = simulate_skill_match(
+            req.profile.skills_as_dicts(),
+            job,
+            req.assumed_skills,
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return {
+        "module": "decision-lab-simulation",
+        "job_id": job.get("job_id") or req.jd_id or "request-job",
+        "job_role": job.get("role") or job.get("job_title") or "",
+        "job_company": job.get("company") or "",
+        "jd_resolution": resolution,
+        "candidate_name": req.profile.name,
+        **result,
+    }
