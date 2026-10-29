@@ -19,6 +19,7 @@ Shared contract and formulas: [`docs/CONTRACT.md`](docs/CONTRACT.md). Setup: [`I
 - **Overview**: connection state, stage rail and workflow launch.
 - **Flow Control**: a single-screen view of the five-stage pipeline; run the full flow after selecting the JD and resume in their dashboards.
 - **Five module dashboards**: JD Analytics, Resume Parsing, Profile Builder, Talent Check and Skill Matching.
+- **Decision Lab**: requirement-level ProofGraph states (level entered, evidence available, claimed, unassessed) plus a hypothetical skill-demonstration simulator. It is read-only and does not persist assumptions.
 - **Evidence & Eval**: measured evaluation artifact, real JD stats, saved-profile completeness and candidate-by-company readiness matrix. Missing data is shown as unavailable, not as fabricated zeroes.
 - **About & Privacy**: score interpretation, AI/data handling, storage, limitations and terms of use.
 
@@ -32,6 +33,7 @@ The UI uses square panels, high-contrast flat color, animated vector pipeline gr
 - **Talent Check does not treat "not assessed" as "cannot do it".** The readiness score is the mean over *assessed* categories; `readiness_floor` (unassessed = 0) and `score_range` are always shown; fewer than 6 of 12 assessed is marked provisional. Nothing assessed gives `readiness_score: null`. The optional AI coach produces a separate advisory readiness rating out of 10, evidence-grounded learning actions, and a seven-day plan. The AI rating is constrained to within 1.5 points of the deterministic readiness score divided by 10, and confidence is forced low when fewer than 4 of 12 categories are assessed. It never changes this score.
 - **Profile Builder AI review is read-only.** It can review profile completeness and evidence quality, but it never rewrites fields or sets proficiency levels. Name, email, candidate ID, and CV filename are excluded from the review prompt.
 - **Skill Match remains explainable.** Required skills weigh 2, preferred 1. Exact, alias, phrase and guarded fuzzy matches are handled first. Optional AI semantic assist may suggest high-confidence equivalences only from supplied JD and resume evidence; candidate/JD labels are validated and the deterministic scorer still assigns all points. `exact_only_score`, `gaps[]`, `points_lost` and `why` remain available.
+- **Decision Lab is additive and stateless.** Its ProofGraph distinguishes explicit levels, evidence text, unsubstantiated claims, and requirements not found in the current profile. The What-if Simulator applies the existing deterministic 2:1 required/preferred weighting to hypothetical skill demonstrations in memory only; it never changes or saves a profile. See [Decision Lab documentation](docs/DECISION_LAB.md).
 - **Benchmark** = the official three-company snapshot `backend/data/talent_check_company_skillsets.json`. Live Supabase companies, if any, are a separately labelled extra (`supabase:` ids).
 - **Storage.** Supabase when `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set; otherwise local JSON files in `backend/data/profiles/` and `backend/data/jds/` (git-ignored). `/api/health` reports `storage_mode: supabase | local-file`.
 - Scores estimate skill coverage; they are not hiring probabilities.
@@ -132,6 +134,8 @@ The harness measures extraction precision/recall/F1, matched requirement-type ac
 | POST | `/api/analytics/matrix` | saved `candidate_ids` × `company_ids` -> readiness comparison |
 | GET | `/api/eval/latest` | latest measured evaluation artifact, or unavailable/blocked status |
 | POST | `/api/skill-match` | `{profile, jd_id}` or `{profile, job}` -> score + `gaps[]` |
+| POST | `/api/decision-lab/proofgraph` | `{profile, job}` or `{profile, jd_id}` -> requirement-level evidence states (stateless) |
+| POST | `/api/decision-lab/simulate` | `{profile, job, assumed_skills}` -> baseline vs hypothetical score; no persistence |
 
 ## Known limits
 
