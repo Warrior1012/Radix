@@ -287,3 +287,127 @@ def build_resume_profile(data: dict[str, Any], method: str, filename: str, text_
         "notice": "AI extraction. Skills are extracted from text only; proficiency levels are not assessed." if method == "llm"
         else "Keyword fallback only (not AI)" + (f" after AI failure: {fallback_reason}" if fallback_reason else "")
         + ". Configure a model API key for richer extraction."}
+
+
+def _agreement_skill_key(name: str) -> str:
+    """Conservative skill-name normalisation for cross-provider overlap (not semantic equivalence)."""
+    key = _norm_key(name)
+    aliases = {
+        "dsa": "data structures algorithms",
+        "data structures and algorithms": "data structures algorithms",
+        "data structure and algorithms": "data structures algorithms",
+        "js": "javascript",
+        "postgres": "postgresql",
+        "ml": "machine learning",
+        "machine learning": "machine learning",
+        "artificial intelligence": "ai",
+    }
+    return aliases.get(key, key)
+
+
+def _comparison_skills(skills: Any, text: str) -> list[dict[str, Any]]:
+    """Re-ground a supplied extraction against the uploaded resume before comparing it."""
+    if not isinstance(skills, list):
+        raise ValueError("primary_skills must be a JSON array.")
+    clean: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in skills[:100]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("skill_name") or "").strip()[:120]
+        evidence = str(item.get("evidence") or "").strip()
+        if not name:
+            continue
+        grounded = _grounded_evidence(name, evidence, text)
+        if not grounded:
+            continue
+        key = _agreement_skill_key(name)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        category = str(item.get("category_code") or "").strip().upper()
+        if category not in SKILL_CATEGORY_CODES:
+            category = skill_category(name)
+        confidence = str(item.get("confidence") or "low").strip().lower()
+        clean.append({
+            "skill_name": name,
+            "category_code": category,
+            "evidence": grounded[:500],
+            "confidence": confidence if confidence in {"high", "medium", "low"} else "low",
+        })
+    return clean
+
+
+async def compare_resume_extractions(text: str, primary_skills: Any, primary_model: str) -> dict[str, Any]:
+    """Compare the successful primary extraction with one different configured provider.
+
+    This is an opt-in, one-extra-call verification signal. It does not update a candidate
+    profile and deliberately reports overlap/disagreement, never accuracy.
+    """
+    primary_label = str(primary_model or "").strip()
+    if ":" not in primary_label:
+        raise LLMError("comparison_unavailable",
+                       "Cross-provider comparison is available only after a successful AI resume parse.")
+    primary_provider, _ = primary_label.split(":", 1)
+    primary_provider = primary_provider.strip().lower()
+    if not primary_provider:
+        raise LLMError("comparison_unavailable", "The primary parser provider could not be identified.")
+
+    primary = _comparison_skills(primary_skills, text)
+    targets = _resume_provider_targets(configured_targets())
+    verifier = next((target for target in targets if target.get("provider", "").lower() != primary_provider), None)
+    if verifier is None:
+        raise LLMError("comparison_unavailable",
+                       "No second AI provider is configured. Add a key for another provider (Gemini, Groq, or OpenRouter) to enable this check.")
+
+    user = "Independently extract candidate information from this resume. Return JSON only.\n<RESUME>\n" + text[:30000] + "\n</RESUME>"
+    timeout = float(os.getenv("MODEL_TIMEOUT_SECONDS", "50"))
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        data = await call_json(
+            client, verifier, system=RESUME_SYSTEM_PROMPT, user=user,
+            gemini_schema=_resume_schema() if verifier["provider"] == "gemini" else None,
+            max_tokens=6000, app_title="RADIX Talent Match Resume Cross-Check",
+        )
+    _validate_resume_model_output(data, text, verifier)
+    verifier_profile = build_resume_profile(
+        data, "llm", "resume", len(text), text=text
+    )
+    verified = verifier_profile.get("skills", [])
+
+    primary_by_key = {_agreement_skill_key(s["skill_name"]): s for s in primary}
+    verifier_by_key = {_agreement_skill_key(s["skill_name"]): s for s in verified}
+    shared_keys = sorted(set(primary_by_key) & set(verifier_by_key))
+    primary_only_keys = sorted(set(primary_by_key) - set(verifier_by_key))
+    verifier_only_keys = sorted(set(verifier_by_key) - set(primary_by_key))
+
+    agreed = [{
+        "skill_name": primary_by_key[key]["skill_name"],
+        "verifier_skill_name": verifier_by_key[key]["skill_name"],
+        "primary_evidence": primary_by_key[key]["evidence"],
+        "verifier_evidence": verifier_by_key[key]["evidence"],
+        "primary_confidence": primary_by_key[key]["confidence"],
+        "verifier_confidence": verifier_by_key[key]["confidence"],
+    } for key in shared_keys]
+    primary_only = [primary_by_key[key] for key in primary_only_keys]
+    verifier_only = [verifier_by_key[key] for key in verifier_only_keys]
+    union_count = len(set(primary_by_key) | set(verifier_by_key))
+    overlap_pct = round((len(shared_keys) / union_count) * 100) if union_count else 0
+
+    return {
+        "comparison_mode": "cross_provider_skill_overlap",
+        "primary_model": primary_label,
+        "verifier_model": f"{verifier['provider']}:{verifier['model']}",
+        "summary": {
+            "primary_skills": len(primary),
+            "verifier_skills": len(verified),
+            "agreed": len(agreed),
+            "primary_only": len(primary_only),
+            "verifier_only": len(verifier_only),
+            "unique_union": union_count,
+            "skill_overlap_pct": overlap_pct,
+        },
+        "agreed": agreed,
+        "primary_only": primary_only,
+        "verifier_only": verifier_only,
+        "disclaimer": "Provider agreement is not ground-truth accuracy. Models can share the same mistake; review disputed skills against the original resume.",
+    }
