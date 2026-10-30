@@ -14,7 +14,7 @@ from radix_jd.documents import safe_filename, extract_text, extract_text_with_me
 from radix_jd.extractor import configured_targets, extract_with_llm, demo_extract, demo_fallback_enabled  # noqa: F401
 from radix_jd.gemini import LLMError
 from radix_jd.requirement_type import resolve_requirement_type
-from radix_jd.resume import parse_resume_llm, skill_category, keyword_fallback_data, build_resume_profile  # noqa: F401
+from radix_jd.resume import parse_resume_llm, skill_category, keyword_fallback_data, build_resume_profile, compare_resume_extractions  # noqa: F401
 from radix_jd.skill_match import compute_skill_match, canonical, ALIASES  # noqa: F401
 from radix_jd.semantic_match import suggest_semantic_matches
 from radix_jd.jd_store import FileJDStore, InvalidJDId, jd_from_row
@@ -181,6 +181,34 @@ async def parse_resume(file: UploadFile=File(...)):
     ai_metadata['runtime_ms'] = round((time.perf_counter() - started) * 1000, 2)
     return {'source_type':'resume','source_file':filename,'profile':profile,'extraction_method':method,
             'document_extraction': document_meta, 'ai_metadata': ai_metadata}
+@app.post('/api/parse-resume/compare')
+async def compare_parsed_resume(file: UploadFile=File(...), primary_model: str=Form(...), primary_skills: str=Form(...)):
+    """Run an explicit second-provider extraction and compare skill overlap without changing the profile."""
+    filename=safe_filename(file.filename or 'resume.pdf')
+    content=await file.read()
+    if len(content)>MAX_UPLOAD_MB*1024*1024:
+        raise HTTPException(413,f'File exceeds {MAX_UPLOAD_MB} MB.')
+    text, document_meta = extract_text_with_metadata(filename, content)
+    try:
+        submitted_skills=json.loads(primary_skills)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, 'primary_skills must contain valid JSON.') from exc
+    if not isinstance(submitted_skills, list):
+        raise HTTPException(422, 'primary_skills must be a JSON array.')
+    try:
+        result=await compare_resume_extractions(text, submitted_skills, primary_model)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except LLMError as exc:
+        status=409 if exc.kind == 'comparison_unavailable' else 502
+        raise HTTPException(status, f'Cross-provider comparison unavailable: {exc.kind}: {exc}') from exc
+    return {
+        'source_type': 'resume_comparison',
+        'source_file': filename,
+        'document_extraction': document_meta,
+        **result,
+    }
+
 class MergeRequest(BaseModel):
     profile: dict[str, Any] | None = None
     parsed: dict[str, Any]
