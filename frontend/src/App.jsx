@@ -336,6 +336,7 @@ export default function App() {
   const [profileReview, setProfileReview] = useState(null);
   const [jd, setJd] = useState(null);
   const [resumeResult, setResumeResult] = useState(null);
+  const [resumeComparison, setResumeComparison] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [jdFile, setJdFile] = useState(null);
   const [resumeParsed, setResumeParsed] = useState(false);
@@ -352,6 +353,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('overview');
+  const resumeProviderCount = new Set((integrations?.ai?.providers || []).map((item) => item.provider).filter(Boolean)).size;
 
   const refreshConnections = useCallback(async () => {
     setHealth(null);
@@ -512,6 +514,7 @@ export default function App() {
     setProfile(merged.profile);
     setProfileReview(null);
     setResumeResult(data);
+    setResumeComparison(null);
     setResumeParsed(true);
 
     const report = merged.report || {};
@@ -525,6 +528,19 @@ export default function App() {
     const modelNote = aiMeta.model_used ? ` Model: ${aiMeta.model_used}${aiMeta.fallback_used ? ' (fallback provider)' : ''}.` : '';
     const failedNote = aiMeta.failed?.length ? ` Earlier provider attempt(s) failed: ${aiMeta.failed.map((x) => `${x.target} (${x.kind})`).join(', ')}.` : '';
     setNotice(`Resume parsed using ${data.extraction_method || 'the configured extractor'}.${modelNote} Merged ${report.skills_added || 0} new skill(s) into your profile${kept ? `; preserved your edits to ${report.kept_user_fields.join(', ')}` : ''}.${isDemo ? ' DEMO MODE: keyword-only results, not AI extraction.' : ''}${failedNote} Review before saving.`);
+  });
+
+  const compareResume = () => run('resume-comparison', async () => {
+    if (!resumeFile || !resumeResult?.profile) throw new Error('Parse a resume first.');
+    const primaryModel = resumeResult.ai_metadata?.model_used;
+    if (!primaryModel) throw new Error('Cross-provider comparison requires a successful AI extraction.');
+    const form = new FormData();
+    form.append('file', resumeFile);
+    form.append('primary_model', primaryModel);
+    form.append('primary_skills', JSON.stringify(resumeResult.profile.skills || []));
+    const data = await call('/api/parse-resume/compare', { method: 'POST', form }, 'Cross-provider comparison failed');
+    setResumeComparison(data);
+    setNotice(`Cross-provider check complete: ${data.summary.agreed} shared skill(s), ${data.summary.primary_only + data.summary.verifier_only} disputed skill(s). Agreement is not accuracy; review differences against the resume.`);
   });
 
   const saveProfile = () => run('save', async () => {
@@ -572,6 +588,7 @@ export default function App() {
   const selectResumeFile = (file) => {
     setResumeFile(file);
     setResumeResult(null);
+    setResumeComparison(null);
     setResumeParsed(false);
   };
 
@@ -889,7 +906,7 @@ export default function App() {
           {activeNav === 'resume-workspace' && (
             <section className="module-screen">
               <div className="screen-heading"><div className="kicker">MODULE 02 / EVIDENCE EXTRACTION</div><h1>Resume Parsing</h1><p>Extract skills from a candidate resume and merge them into the shared profile. Review the parsed evidence before continuing.</p></div>
-              <div className="screen-panel"><ResumePanel resumeFile={resumeFile} setResumeFile={selectResumeFile} busy={busy} onParse={parseResume} parsedResume={resumeResult} /></div>
+              <div className="screen-panel"><ResumePanel resumeFile={resumeFile} setResumeFile={selectResumeFile} busy={busy} onParse={parseResume} parsedResume={resumeResult} comparison={resumeComparison} providerCount={resumeProviderCount} onCompare={compareResume} /></div>
               <div className="screen-actions"><button className="btn btn-quiet" onClick={() => navigate('profile-workspace')}>Next: Profile Builder <ArrowRight size={16} /></button></div>
             </section>
           )}
